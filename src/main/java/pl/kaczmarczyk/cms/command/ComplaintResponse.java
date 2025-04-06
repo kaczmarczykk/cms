@@ -1,4 +1,4 @@
 package pl.kaczmarczyk.cms.command;
 
-record ComplaintResponse(Long id) {
+public record ComplaintResponse(Long id) {
 }

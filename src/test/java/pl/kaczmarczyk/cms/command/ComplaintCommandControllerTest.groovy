@@ -20,7 +20,6 @@ class ComplaintCommandControllerTest extends Specification {
     @ServiceConnection
     static RedisContainer REDIS_CONTAINER = new RedisContainer("redis:7.4.2")
 
-
     @Autowired
     private TestRestTemplate template
 
@@ -74,6 +73,29 @@ class ComplaintCommandControllerTest extends Specification {
         saved.content == command.content()
         saved.country == country
         saved.counter == 1
+    }
+
+    def "should update content"() {
+        setup:
+        def createCommand = new ComplaintCreateCommand(123, 'claimant@test.pl', 'content')
+        def country = Locale.getDefault().getCountry()
+        def created = repository.save(Complaint.of(createCommand, country))
+
+        def command = new ComplaintUpdateCommand(created.id, 'new content')
+
+        when:
+        template.put(
+                new URI(COMPLAINT_ENDPOINT),
+                command
+        )
+
+        then:
+        def saved = repository.findById(created.id).get()
+        saved.productId == created.productId
+        saved.claimant == created.claimant
+        saved.content == command.content()
+        saved.country == created.country
+        saved.counter == created.counter
     }
 
 }

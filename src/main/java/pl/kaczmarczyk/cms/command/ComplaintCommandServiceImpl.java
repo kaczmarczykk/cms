@@ -3,6 +3,7 @@ package pl.kaczmarczyk.cms.command;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import pl.kaczmarczyk.cms.common.CountryDto;
 import pl.kaczmarczyk.cms.common.CountryService;
@@ -13,6 +14,7 @@ class ComplaintCommandServiceImpl implements ComplaintCommandService {
 
 	private final ComplaintCommandRepository commandRepository;
 	private final CountryService countryService;
+	private final ApplicationEventPublisher applicationEventPublisher;
 
 	@Override
 	@Transactional
@@ -20,6 +22,7 @@ class ComplaintCommandServiceImpl implements ComplaintCommandService {
 		Complaint complaint = commandRepository.findByProductIdAndClaimant(command.productId(), command.claimant())
 				.map(ComplaintCommandServiceImpl::incrementCounter)
 				.orElseGet(() -> createNewComplaint(command, remoteAddress));
+		publishComplaint(complaint);
 		return new ComplaintResponse(complaint.getId());
 	}
 
@@ -29,6 +32,7 @@ class ComplaintCommandServiceImpl implements ComplaintCommandService {
 		Complaint complaint = commandRepository.findById(command.id())
 				.orElseThrow(EntityNotFoundException::new);
 		complaint.updateContent(command.content());
+		publishComplaint(complaint);
 		return new ComplaintResponse(command.id());
 	}
 
@@ -40,5 +44,9 @@ class ComplaintCommandServiceImpl implements ComplaintCommandService {
 	private Complaint createNewComplaint(ComplaintCreateCommand command, String remoteAddress) {
 		CountryDto countryDto = countryService.getCountryByIp(remoteAddress);
 		return commandRepository.save(Complaint.of(command, countryDto.countryCode()));
+	}
+
+	private void publishComplaint(Complaint complaint) {
+		applicationEventPublisher.publishEvent(ComplaintMapper.INSTANCE.complaintToComplaintEvent(complaint));
 	}
 }
