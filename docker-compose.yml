@@ -1,0 +1,17 @@
+services:
+  postgresql:
+    container_name: postgresql
+    image: postgres:17.4
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=cms
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+
+  redis:
+    container_name: redis
+    image: redis:7.4.2
+    ports:
+      - "6379:6379"
+    restart: always
