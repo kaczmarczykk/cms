@@ -3,15 +3,20 @@ package pl.kaczmarczyk.cms.command;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
-import pl.kaczmarczyk.cms.common.CountryDto;
-import pl.kaczmarczyk.cms.common.CountryService;
+import pl.kaczmarczyk.cms.country.CountryDto;
+import pl.kaczmarczyk.cms.country.CountryService;
 
+import java.util.Objects;
+
+@Slf4j
 @Service
 @RequiredArgsConstructor
 class ComplaintCommandServiceImpl implements ComplaintCommandService {
 
+	private static final String COUNTRY_CODE_INVALID = "COUNTRY_CODE_INVALID";
 	private final ComplaintCommandRepository commandRepository;
 	private final CountryService countryService;
 	private final ApplicationEventPublisher applicationEventPublisher;
@@ -43,10 +48,18 @@ class ComplaintCommandServiceImpl implements ComplaintCommandService {
 
 	private Complaint createNewComplaint(ComplaintCreateCommand command, String remoteAddress) {
 		CountryDto countryDto = countryService.getCountryByIp(remoteAddress);
+		validateCountry(countryDto);
 		return commandRepository.save(Complaint.of(command, countryDto.countryCode()));
 	}
 
 	private void publishComplaint(Complaint complaint) {
 		applicationEventPublisher.publishEvent(ComplaintMapper.INSTANCE.complaintToComplaintEvent(complaint));
+	}
+
+	private static void validateCountry(CountryDto countryDto) {
+		if (Objects.isNull(countryDto.countryCode())) {
+			log.error("The country code is invalid");
+			throw new IllegalArgumentException(COUNTRY_CODE_INVALID);
+		}
 	}
 }

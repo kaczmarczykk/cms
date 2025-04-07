@@ -1,4 +1,4 @@
-package pl.kaczmarczyk.cms.common;
+package pl.kaczmarczyk.cms.country;
 
 public interface CountryService {
 
